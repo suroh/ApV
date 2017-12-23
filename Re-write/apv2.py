@@ -441,26 +441,30 @@ ApvScreenManager:
                 with_previous: False
             ActionOverflow:
             ActionButton:
+                text: 'Display All'
+                ##on_press: 
+            ActionButton:
                 text: 'Encrypt'
                 ##on_press: 
             ActionButton:
                 text: 'Decrypt'
                 ##on_press: 
             ActionButton:
-                text: 'Export'
-                ##on_press: 
+                text: 'Clear'
             ActionButton:
                 text: 'Advanced Settings'
-            ActionButton:
-                text: 'Print'
             ActionGroup:
                 text: 'Settings'
                 ActionButton:
-                    text: 'random'
+                    text: 'Print'
                 ActionButton:
-                    text: 'Btn6'
+                    text: 'Provide Key'
                 ActionButton:
-                    text: 'Btn7'
+                    text: 'Save Key'
+                ActionButton:
+                    text: 'Edit Listing'
+                ActionButton:
+                    text: 'Search Listing'
 
 ''')
 
