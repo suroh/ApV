@@ -390,7 +390,48 @@ ApvScreenManager:
 
 <ApvMainScreen>:
     name: 'monitor_screen'
-
+    TextInput:
+        id: listing_input
+        size_hint: .3, .05
+        pos_hint: {'x': 0, 'y': .75 }
+        text: 'Listing: '
+        multiline: False
+    TextInput:
+        id: website_input
+        size_hint: .3, .05
+        pos_hint: {'x': 0, 'y': .65 }
+        text: 'Website: '
+        multiline: False
+    TextInput:
+        id: email_input
+        size_hint: .3, .05
+        pos_hint: {'x': 0, 'y': .55 }
+        text: 'Email Address: '
+        multiline: False
+    TextInput:
+        id: username_input
+        size_hint: .3, .05
+        pos_hint: {'x': 0, 'y': .55 }
+        text: 'Username: '
+        multiline: False
+    TextInput:
+        id: password_input
+        size_hint: .3, .05
+        pos_hint: {'x': 0, 'y': .45 }
+        text: 'Password: '
+        multiline: False
+    TextInput:
+        id: description_input
+        size_hint: .3, .19
+        pos_hint: {'x': 0, 'y': .20 }
+        text: 'Description: '
+        multiline: True
+    TextInput:
+        id: viewport_output
+        size_hint: .9, .9
+        pos_hint: {'x': .50, 'y': .0 }
+        text: ''
+        multiline: True
     ActionBar:
         pos_hint: {'top':1}
         ActionView:
