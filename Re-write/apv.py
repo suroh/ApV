@@ -6,7 +6,6 @@
 __author__ = 'Aaron Johnson'
 import sys
 import os
-from os.path import sep, expanduser, isdir, dirname
 import base64
 import nacl
 #from Crypto.Cipher import AES
