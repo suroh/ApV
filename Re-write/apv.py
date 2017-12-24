@@ -50,6 +50,8 @@ from kivy.uix.filechooser import FileChooser, FileChooserListView
 from kivy.properties import ObjectProperty
 from kivy.uix.popup import Popup
 
+
+
 class Afflicted(object):
     class Security(object):
         _rsa_key = None
@@ -370,9 +372,11 @@ class Afflicted(object):
             return final
 
 
+
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
     cancel = ObjectProperty(None)
+
 
 
 class SaveDialog(FloatLayout):
@@ -380,12 +384,14 @@ class SaveDialog(FloatLayout):
     text_input = ObjectProperty(None)
     cancel = ObjectProperty(None)
 
+
+
 class ApvMainScreen(Screen):
 
     def __init__(self, **kwargs):
         super(ApvMainScreen, self).__init__(**kwargs)
 
-    def open_file_dialog(self):
+    def open_load_file_dialog(self):
         content = LoadDialog(load = self.load, cancel = self.dismiss_popup)
         self._popup = Popup(title = "Load file", content = content, size_hint = (0.9, 0.9))
         self._popup.open()
@@ -421,6 +427,40 @@ class ApvMainScreen(Screen):
     def clear_text(self):
         self.ids.viewport_output.text = ''
 
+    def set_listing_text(self):
+        __listing = self.ids.listing_input.text
+        # Write text encrypted to a file with an added new line
+        self.ids.listing_input.text = 'Listing: '
+
+
+    def set_website_text(self):
+        __website = self.ids.website_input.text
+        # Write text encrypted to a file with an added new line
+        self.ids.website_input.text = 'Website: '
+
+
+    def set_email_text(self):
+        __email = self.ids.email_input.text
+        # Write text encrypted to a file with an added new line
+        self.ids.email_input.text = 'Email Address: '
+
+
+    def set_user_text(self):
+        __usr = self.ids.user_input.text
+        # Write text encrypted to a file with an added new line
+        self.ids.user_input.text = 'Username: '
+
+
+    def set_password_text(self):
+        __password = self.ids.password_input.text
+        # Write text encrypted to a file with an added new line
+        self.ids.password_input.text = 'Password: '
+
+
+    def set_description_text(self):
+        __description = self.ids.description_input.text
+        # Write text encrypted to a file with an added new line
+        self.ids.description_input.text = 'Description: '
 
 class ApvSettingsScreen(Screen):
     pass
@@ -430,7 +470,7 @@ class ApvScreenManager(ScreenManager):
     pass
 
 
-#######################################################################################################################
+########################################################################################################################
 
 root_widget = Builder.load_string('''
 #:import FallOutTransition kivy.uix.screenmanager.FallOutTransition
@@ -454,42 +494,50 @@ ApvScreenManager:
         pos_hint: {'x': 0, 'y': .75 }
         text: 'Listing: '
         multiline: False
+        on_text_validate: root.set_listing_text()
     TextInput:
         id: website_input
         size_hint: .3, .05
         pos_hint: {'x': 0, 'y': .65 }
         text: 'Website: '
         multiline: False
+        on_text_validate: root.set_website_text()
     TextInput:
         id: email_input
         size_hint: .3, .05
         pos_hint: {'x': 0, 'y': .55 }
         text: 'Email Address: '
         multiline: False
+        on_text_validate: root.set_email_text()
     TextInput:
         id: username_input
         size_hint: .3, .05
         pos_hint: {'x': 0, 'y': .55 }
         text: 'Username: '
         multiline: False
+        on_text_validate: root.set_user_text()
     TextInput:
         id: password_input
         size_hint: .3, .05
         pos_hint: {'x': 0, 'y': .45 }
         text: 'Password: '
         multiline: False
+        on_text_validate: root.set_password_text()
     TextInput:
         id: description_input
         size_hint: .3, .19
         pos_hint: {'x': 0, 'y': .20 }
         text: 'Description: '
         multiline: True
+        on_text_validate: root.set_description_text()
     TextInput:
         id: viewport_output
         size_hint: .9, .9
-        pos_hint: {'x': .50, 'y': .0 }
+        pos_hint: {'x': .30, 'y': .0 }
         text: ''
         multiline: True
+        ##disabled: True ## Prevents scrolling too.
+        
     ActionBar:
         pos_hint: {'top':1}
         ActionView:
@@ -500,7 +548,7 @@ ApvScreenManager:
             ActionOverflow:
             ActionButton:
                 text: 'Open file'
-                on_press: root.open_save_file_dialog()
+                on_press: root.open_load_file_dialog()
             ActionButton:
                 text: 'Encrypt'
                 ##on_press: 
@@ -578,7 +626,7 @@ ApvScreenManager:
 ''')
 
 
-#######################################################################################################################
+########################################################################################################################
 class ApvApp(App):
     def build(self):
         self.title = 'apv'
