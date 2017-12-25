@@ -370,7 +370,7 @@ class AfflictedIO(object):
                     pass # do othing because the file exists
                 elif not os.path.isfile(path):
                     df1 = pd.DataFrame({'Listing': [None], 'Website': [None],'Email': [None], 'Username': [None],
-                                        'Password': [None], 'Description': [None]})
+                                        'Password': [None]})
                     writer = pd.ExcelWriter(path, engine='xlsxwriter')
                     df1.to_excel(writer, sheet_name='Accounts')
                     workbook = writer.book
@@ -381,7 +381,7 @@ class AfflictedIO(object):
                     pass
                 elif not os.path.isfile(path):
                     df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
-                                        'Password': [None], 'Description': [None]})
+                                        'Password': [None]})
                     writer = pd.ExcelWriter(path,engine='xlsxwriter')
                     df1.to_excel(writer, sheet_name='Accounts')
                     workbook = writer.book
@@ -392,7 +392,7 @@ class AfflictedIO(object):
                     pass # do nothing because file exists
                 elif not os.path.isfile(path): # this is not a mac
                     df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
-                                        'Password': [None], 'Description': [None]})
+                                        'Password': [None]})
                     writer = pd.ExcelWriter(path, engine='xlsxwriter')
                     df1.to_excel(writer, sheet_name='Accounts')
                     workbook = writer.book
@@ -402,8 +402,38 @@ class AfflictedIO(object):
             raise IOError('%s: %s' % (exception.strerror))
         return None
 
-    def append_dataframes(path):
-        pass
+    def append_dataframes(path, listing_text, website_text, email_text, user_text, password_text, description_text):
+        try:
+            if sys.platform == 'linux2':
+                if os.path.isfile(path):
+                    pass  # do othing because the file exists
+                elif not os.path.isfile(path):
+                    '''
+                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
+                                        'Password': [None]})
+                    writer = pd.ExcelWriter(path, engine='xlsxwriter')
+                    df1.to_excel(writer, sheet_name='Accounts')
+                    workbook = writer.book
+                    worksheet1 = writer.sheets['Accounts']
+                    writer.save()
+                    '''
+                    #df = pd.DataFrame(, columns = ('BCDEF'))
+                    pass
+            elif sys.platform == 'win32':
+                if os.path.isfile(path):
+                    pass
+                elif not os.path.isfile(path):
+                    #write shit
+                    pass
+            elif sys.platform == 'darwin':
+                if os.path.isfile(path):  # this is not a mac
+                    pass  # do nothing because file exists
+                elif not os.path.isfile(path):  # this is not a mac
+                   #write shit
+                   pass
+        except IOError as exception:
+            raise IOError('%s: %s' % (exception.strerror))
+        return None
 
 i = AfflictedIO
 
@@ -454,6 +484,7 @@ class ApvMainScreen(Screen):
 
     def __init__(self, **kwargs):
         super(ApvMainScreen, self).__init__(**kwargs)
+        self.__temporary_list = list()
 
     def open_load_file_dialog(self):
         content = LoadDialog(load = self.load, cancel = self.dismiss_popup)
@@ -493,39 +524,54 @@ class ApvMainScreen(Screen):
 
     def set_listing_text(self):
         __listing = self.ids.listing_input.text
-        # Write text encrypted to a file with an added new line
+        self.__gen_dataframe(__listing)
         self.ids.listing_input.text = 'Listing: '
 
     def set_website_text(self):
         __website = self.ids.website_input.text
-        # Write text encrypted to a file with an added new line
+        self.__gen_dataframe(__website)
         self.ids.website_input.text = 'Website: '
 
     def set_email_text(self):
         __email = self.ids.email_input.text
-        # Write text encrypted to a file with an added new line
+        self.__gen_dataframe(__email)
         self.ids.email_input.text = 'Email Address: '
 
     def set_user_text(self):
-        __usr = self.ids.user_input.text
-        # Write text encrypted to a file with an added new line
-        self.ids.user_input.text = 'Username: '
+        __usr = self.ids.username_input.text
+        self.__gen_dataframe(__usr)
+        self.ids.username_input.text = 'Username: '
 
     def set_password_text(self):
         __password = self.ids.password_input.text
-        # Write text encrypted to a file with an added new line
+        self.__gen_dataframe(__password)
         self.ids.password_input.text = 'Password: '
 
-    def set_description_text(self):
-        __description = self.ids.description_input.text
-        # Write text encrypted to a file with an added new line
-        self.ids.description_input.text = 'Description: '
+    def __gen_dataframe(self, text):
+        self.__temporary_list.append(text)
+        # self.__test_dataframe()
+        # self.__write_list()
+
+    def __write_list(self):
+        if len(self.__temporary_list) == 5:
+            print('clearing now')
+            self.__clear_list()
+            for i in self.__temporary_list:
+                print(i)
+
+    def __test_dataframe(self):
+        for i in self.__temporary_list:
+            print(i)
+
+    def __clear_list(self):
+        self.__temporary_list.clear()
 
 class ApvSettingsScreen(Screen):
     pass
 
 class ApvScreenManager(ScreenManager):
     pass
+
 
 ########################################################################################################################
 
@@ -555,21 +601,21 @@ ApvScreenManager:
     TextInput:
         id: listing_input
         size_hint: .3, .05
-        pos_hint: {'x': 0, 'y': .75 }
+        pos_hint: {'x': 0, 'y': .85 }
         text: 'Listing: '
         multiline: False
         on_text_validate: root.set_listing_text()
     TextInput:
         id: website_input
         size_hint: .3, .05
-        pos_hint: {'x': 0, 'y': .65 }
+        pos_hint: {'x': 0, 'y': .75 }
         text: 'Website: '
         multiline: False
         on_text_validate: root.set_website_text()
     TextInput:
         id: email_input
         size_hint: .3, .05
-        pos_hint: {'x': 0, 'y': .55 }
+        pos_hint: {'x': 0, 'y': .65 }
         text: 'Email Address: '
         multiline: False
         on_text_validate: root.set_email_text()
@@ -587,13 +633,6 @@ ApvScreenManager:
         text: 'Password: '
         multiline: False
         on_text_validate: root.set_password_text()
-    TextInput:
-        id: description_input
-        size_hint: .3, .19
-        pos_hint: {'x': 0, 'y': .20 }
-        text: 'Description: '
-        multiline: True
-        on_text_validate: root.set_description_text()
     TextInput:
         id: viewport_output
         size_hint: .9, .9
@@ -615,7 +654,7 @@ ApvScreenManager:
                 on_press: root.open_load_file_dialog()
             ActionButton:
                 text: 'Encrypt'
-                ##on_press: 
+                ##on_press:
             ActionButton:
                 text: 'Decrypt'
                 ##on_press: 
