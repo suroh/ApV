@@ -450,24 +450,6 @@ class ApvLoadingScreen(Screen):
         return None
         #self.parent.current = 'main_screen'
 
-    def first_run(self):
-        try:
-            if sys.platform == 'linux2':
-                i.create_folder('/home/' + str(os.getlogin()) + './APV/')
-                i.write_dataframes('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
-                self.switch_screen_callback(5.0)
-            elif sys.platform == 'win32':
-                i.create_folder('C://APV//')
-                i.write_dataframes('C://APV//Private.xlsx')
-                self.switch_screen_callback(5.0)
-            elif sys.platform == 'darwin':
-                i.create_folder('/home/' + str(os.getlogin()) + './APV/')
-                i.write_dataframes('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
-                self.switch_screen_callback(5.0)
-        except OSError as exception:
-            raise OSError('%s: %s' % (exception.strerror))
-        return None
-
 class ApvMainScreen(Screen):
 
     def __init__(self, **kwargs):
@@ -544,7 +526,6 @@ class ApvSettingsScreen(Screen):
 
 class ApvScreenManager(ScreenManager):
     pass
-
 
 ########################################################################################################################
 
