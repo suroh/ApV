@@ -22,6 +22,8 @@ import threading
 import socket
 import linecache
 import fileinput
+import xlwt
+import pandas as pd
 import kivy
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
@@ -49,342 +51,422 @@ from kivy.uix.screenmanager import ScreenManager, Screen, FadeTransition
 from kivy.uix.filechooser import FileChooser, FileChooserListView
 from kivy.properties import ObjectProperty
 from kivy.uix.popup import Popup
+from kivy.clock import Clock
 
 
 
-class Afflicted(object):
-    class Security(object):
-        _rsa_key = None
+class Security(object):
+    rsa_key = None
 
-        def __init__(self):
-            gen_len = random.randint(1, 100)
-            k_len = list()
-            complete = ''
-            self._block = 16
-            if gen_len < 50:
-                for i in range(16):
-                    k_len.append(random.randint(32, 126))
+    def __init__(self):
+        gen_len = random.randint(1, 100)
+        k_len = list()
+        complete = ''
+        self._block = 16
+        if gen_len < 50:
+            for i in range(16):
+                k_len.append(random.randint(32, 126))
 
-                for i in k_len:
-                    if i != 32:
-                        complete += chr(i)
-                    elif i == 32:
-                        complete += chr(126)
+            for i in k_len:
+                if i != 32:
+                    complete += chr(i)
+                elif i == 32:
+                    complete += chr(126)
 
-                self._key = complete
+            self._key = complete
 
-            elif gen_len >= 50:
-                for i in range(32):
-                    k_len.append(random.randint(32, 126))
+        elif gen_len >= 50:
+            for i in range(32):
+                k_len.append(random.randint(32, 126))
 
-                for i in k_len:
-                    if i != 32:
-                        complete += chr(i)
-                    elif i == 32:
-                        complete += chr(126)
+            for i in k_len:
+                if i != 32:
+                    complete += chr(i)
+                elif i == 32:
+                    complete += chr(126)
 
-                self._key = complete
+            self._key = complete
 
-        def UserKey(self, temp_key):
-            key_length = len(temp_key)
-            if key_length < 16:
-                print('The key must be either 16 or 32 bytes in length')
+    def UserKey(self, temp_key):
+        key_length = len(temp_key)
+        if key_length < 16:
+            print('The key must be either 16 or 32 bytes in length')
 
-            elif key_length == 16:
-                self._key = temp_key
+        elif key_length == 16:
+            self._key = temp_key
 
-            elif key_length == 32:
-                self._key = temp_key
-            return self._key
+        elif key_length == 32:
+            self._key = temp_key
+        return self._key
 
-        def Encrypt_Message(self, text):
-            text = self.__Pad(text)
-            iv = Random.new().read(AES.block_size)
-            cipher = AES.new(self._key, AES.MODE_CBC, iv)
-            return base64.urlsafe_b64encode(iv + cipher.encrypt(text))
+    def Encrypt_Message(self, text):
+        text = self.__Pad(text)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self._key, AES.MODE_CBC, iv)
+        return base64.urlsafe_b64encode(iv + cipher.encrypt(text))
 
-        def Decrypt_Message(self, text):
-            cleaned = base64.urlsafe_b64decode(text)
-            iv = cleaned[:AES.block_size]
-            cipher = AES.new(self._key, AES.MODE_CBC, iv)
-            return self.__Unpad(cipher.decrypt(cleaned[AES.block_size:])).decode('utf-8')
+    def Decrypt_Message(self, text):
+        cleaned = base64.urlsafe_b64decode(text)
+        iv = cleaned[:AES.block_size]
+        cipher = AES.new(self._key, AES.MODE_CBC, iv)
+        return self.__Unpad(cipher.decrypt(cleaned[AES.block_size:])).decode('utf-8')
 
-        def Encrypt_File(self, path):
-            with open(path, 'r') as inFile:
-                plainText = inFile.read()
-            plainText = self.__Pad(plainText)
-            iv = Random.new().read(AES.block_size)
-            cipher = AES.new(self._key, AES.MODE_CBC, iv)
-            return base64.urlsafe_b64encode(iv + cipher.encrypt(plainText))
+    def Encrypt_File(self, path):
+        with open(path, 'r') as inFile:
+            plainText = inFile.read()
+        plainText = self.__Pad(plainText)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self._key, AES.MODE_CBC, iv)
+        return base64.urlsafe_b64encode(iv + cipher.encrypt(plainText))
 
-        def Write_Encrypted(self, path, hidden):
-            with open(path, 'wb') as outFile:
-                outFile.write(hidden)
-            return None
+    def Write_Encrypted(self, path, hidden):
+        with open(path, 'wb') as outFile:
+            outFile.write(hidden)
+        return None
 
-        def Decrypt_File(self, path):
-            with open(path, 'rb') as seeFile:
-                encryptedData = seeFile.read()
-            cleaned = base64.urlsafe_b64decode(encryptedData)
-            iv = cleaned[:AES.block_size]
-            cipher = AES.new(self._key, AES.MODE_CBC, iv)
-            return self.__Unpad(cipher.decrypt(cleaned[AES.block_size:])).decode('utf-8')
+    def Decrypt_File(self, path):
+        with open(path, 'rb') as seeFile:
+            encryptedData = seeFile.read()
+        cleaned = base64.urlsafe_b64decode(encryptedData)
+        iv = cleaned[:AES.block_size]
+        cipher = AES.new(self._key, AES.MODE_CBC, iv)
+        return self.__Unpad(cipher.decrypt(cleaned[AES.block_size:])).decode('utf-8')
 
-        def Write_Decrypted(self, path, text):
-            with open(path, 'w') as mkFile:
-                mkFile.write(str(text))
-            return None
+    def Write_Decrypted(self, path, text):
+        with open(path, 'w') as mkFile:
+            mkFile.write(str(text))
+        return None
 
-        def __Pad(self, text):
-            return text + (self._block - len(text) % self._block) * chr(self._block - len(text) % self._block)
+    def __Pad(self, text):
+        return text + (self._block - len(text) % self._block) * chr(self._block - len(text) % self._block)
 
-        def __Unpad(self, text):
-            return text[:-ord(text[len(text) - 1:])]
+    def __Unpad(self, text):
+        return text[:-ord(text[len(text) - 1:])]
 
-        def RSA_Key_Gen(self):
-            Afflicted.Security.rsa_key = RSA.generate(1024, Random.new().read)
-            return self._rsa_key
+    def RSA_Key_Gen(self):
+        Afflicted.Security.rsa_key = RSA.generate(1024, Random.new().read)
+        return self._rsa_key
 
-        def Encrypt_Key(self, aes_key):
-            key = self.RSA_Key_Gen()
-            PubKey = key.publickey()
-            return PubKey.encrypt(bytes(aes_key.encode()), 32)
+    def Encrypt_Key(self, aes_key):
+        key = self.RSA_Key_Gen()
+        PubKey = key.publickey()
+        return PubKey.encrypt(bytes(aes_key.encode()), 32)
 
-        def Decrypt_Key(self, aes_key):
-            return self.rsa_key.decrypt(aes_key)
+    def Decrypt_Key(self, aes_key):
+        return self.rsa_key.decrypt(aes_key)
 
-        def write_key(self, path, aes_key):
-            with open(path, 'w') as f:
-                f.write(str(aes_key))
-            return None
+    def write_key(self, path, aes_key):
+        with open(path, 'w') as f:
+            f.write(str(aes_key))
+        return None
 
-        def read_key(self, path):
-            with open(path, 'rb') as inFile:
-                hidden = inFile.read()
-            return self.Decrypt_Key(hidden)
+    def read_key(self, path):
+        with open(path, 'rb') as inFile:
+            hidden = inFile.read()
+        return self.Decrypt_Key(hidden)
     #re-write Security using pynacl; PyCrypto has been dead for years now.
 
-    class IO(object):
+class AfflictedIO(object):
 
-        def write(self, path, text):
-            try:
-                if os.path.isfile(path):
-                    return None
-                else:
-                    with open(path, 'w') as outFile:
-                        outFile.write(text)
-            except IOError as exception:
-                raise IOError("%s: %s" % (path, exception.strerror))
+    def write(path, text):
+        try:
+            if os.path.isfile(path):
+                return None
+            else:
+                with open(path, 'w') as outFile:
+                    outFile.write(text)
+        except IOError as exception:
+            raise IOError("%s: %s" % (path, exception.strerror))
+        return None
 
-            return None
+    def append(path, text):
+        try:
+            if os.path.isfile(path):
+                with open(path, 'a') as outFile:
+                    outFile.write(text)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return None
 
-        def append(self, path, text):
-            try:
-                if os.path.isfile(path):
-                    with open(path, 'a') as outFile:
-                        outFile.write(text)
-            except IOError as exception:
-                raise IOError('%s: %s' % (path, exception.strerror))
-            return None
+    def read(path):
+        try:
+            if os.path.isfile(path):
+                with open(path, 'r') as inFile:
+                    temp = inFile.read()
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return temp
 
-        def read(self, path):
-            try:
-                if os.path.isfile(path):
-                    with open(path, 'r') as inFile:
-                        temp = inFile.read()
-            except IOError as exception:
-                raise IOError('%s: %s' % (path, exception.strerror))
-            return temp
+    def write_b(path, text):
+        try:
+            if os.path.isfile(path):
+                with open(path, 'wb') as outFile:
+                    outFile.write(text)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return None
 
-        def write_b(self, path, text):
-            try:
-                if os.path.isfile(path):
-                    with open(path, 'wb') as outFile:
-                        outFile.write(text)
-            except IOError as exception:
-                raise IOError('%s: %s' % (path, exception.strerror))
-            return None
+    def append_b(path, text):
+        try:
+            if os.path.isfile(path):
+                with open(path, 'ab') as outFile:
+                    outFile.write(text)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return None
 
-        def append_b(self, path, text):
-            try:
-                if os.path.isfile(path):
-                    with open(path, 'ab') as outFile:
-                        outFile.write(text)
-            except IOError as exception:
-                raise IOError('%s: %s' % (path, exception.strerror))
-            return None
+    def read_b(path):
+        try:
+            if os.path.isfile(path):
+                with open(path, 'rb') as inFile:
+                    temp = inFile.read()
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return temp
 
-        def read_b(self, path):
-            try:
-                if os.path.isfile(path):
-                    with open(path, 'rb') as inFile:
-                        temp = inFile.read()
-            except IOError as exception:
-                raise IOError('%s: %s' % (path, exception.strerror))
-            return temp
+    def get_line( path, number):
+        try:
+            if os.path.isfile(path):
+                temp = linecache.getline(path, number)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return temp
 
-        def get_line(self, path, number):
-            try:
-                if os.path.isfile(path):
-                    temp = linecache.getline(path, number)
-            except IOError as exception:
-                raise IOError('%s: %s' % (path, exception.strerror))
-            return temp
-
-        def create_file(self, Directory, file_name):
-            temp = Directory + file_name
-            try:
-                if os.path.isdir(Directory):
-                    with open(temp, 'w') as outFile:
-                        pass
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
-            return temp
-
-        def create_folder(self, path):
-            try:
-                if os.path.isdir(path):
+    def create_file(Directory, file_name):
+        temp = Directory + file_name
+        try:
+            if os.path.isdir(Directory):
+                with open(temp, 'w') as outFile:
                     pass
-                else:
-                    os.makedirs(path)
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
-            return None
+        except IOError as exception:
+            raise IOError('%s: %s' % (Directory, exception.strerror))
+        return temp
 
-        def delete_file(self, path):
-            try:
-                if os.path.isfile(path):
-                    os.remove(path)
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
-            return None
+    def create_folder(path):
+        try:
+            if os.path.isdir(path):
+                pass
+            else:
+                os.makedirs(path)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return None
 
-        def delete_folder(self, path):
-            try:
-                if os.path.isdir(path):
-                    os.rmdir(path)
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
-            return None
+    def delete_file(path):
+        try:
+            if os.path.isfile(path):
+                os.remove(path)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return None
 
-        def find_string(self, path, text):
-            try:
-                if os.path.isfile(path):
-                    with open(path, 'r') as inFile:
-                        for i, line in enumerate(inFile):
-                            if text in line:
-                                return text
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
+    def delete_folder(path):
+        try:
+            if os.path.isdir(path):
+                os.rmdir(path)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return None
 
-        def get_line_number(self, path, text):
-            try:
-                if os.path.isfile(path):
-                    with open(path, 'r') as inFile:
-                        for i, line in enumerate(inFile):
-                            if text in line:
-                                return str(i)
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
+    def find_string(path, text):
+        try:
+            if os.path.isfile(path):
+                with open(path, 'r') as inFile:
+                    for i, line in enumerate(inFile):
+                        if text in line:
+                            return text
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
 
-        def get_total_lines(self, path):
-            counter = 0
-            try:
-                if os.path.isfile(path):
-                    with open(path, 'r') as inFile:
-                        for i in enumerate(inFile):
-                            counter = counter + 1
-                return str(counter)
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
+    def get_line_number(path, text):
+        try:
+            if os.path.isfile(path):
+                with open(path, 'r') as inFile:
+                    for i, line in enumerate(inFile):
+                        if text in line:
+                            return str(i)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
 
-        def get_lines_before(self, path, line_number):
-            try:
-                final = ''
-                counter = 0
-                if os.path.isfile(path):
-                    while counter < line_number:
-                        final += linecache.getline(path, counter)
-                        counter += 1
+    def get_total_lines(path):
+        counter = 0
+        try:
+            if os.path.isfile(path):
+                with open(path, 'r') as inFile:
+                    for i in enumerate(inFile):
+                        counter = counter + 1
+            return str(counter)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
 
-                    return final
-
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
-
-        def get_lines_from(self, path, text, amount):
-            main = 0
+    def get_lines_before(path, line_number):
+        try:
             final = ''
             counter = 0
-            try:
-                if os.path.isfile(path):
-                    with open(path, 'r') as inFile:
-                        for i, line in enumerate(inFile):
-                            if text in line:
-                                main = i
-                                break
+            if os.path.isfile(path):
+                while counter < line_number:
+                    final += linecache.getline(path, counter)
+                    counter += 1
+                return final
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
 
-                    final = linecache.getline(path, main)
+    def get_lines_from(path, text, amount):
+        main = 0
+        final = ''
+        counter = 0
+        try:
+            if os.path.isfile(path):
+                with open(path, 'r') as inFile:
+                    for i, line in enumerate(inFile):
+                        if text in line:
+                            main = i
+                            break
+                final = linecache.getline(path, main)
+                main += 1
+                while counter < amount:
+                    final += linecache.getline(path, main)
                     main += 1
-                    while counter < amount:
-                        final += linecache.getline(path, main)
-                        main += 1
-                        counter += 1
+                    counter += 1
+                return final
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
 
-                    return final
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
+    def get_lines_after(path, line_number, amount):
+        final = ''
+        counter = 0
+        num = line_number + 1
+        try:
+            if os.path.isfile(path):
+                while counter < amount:
+                    final += linecache.getline(path, num)
+                    num += 1
+                    counter += 1
+                return final
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
 
-        def get_lines_after(self, path, line_number, amount):
-            final = ''
-            counter = 0
-            num = line_number + 1
-            try:
+    def erase_specific_text(path, text, skip_num):
+        final = ''
+        slice_one = ''
+        slice_two = ''
+        maximum_lines = self.get_total_lines(path)
+        break_line = self.get_line_number(path, text)
+        slice_one = self.get_lines_before(path, int(break_line))
+        second_run = int(maximum_lines) - int(break_line)
+        second_start = int(break_line) + skip_num
+        slice_two = self.get_lines_after(path, int(second_start), int(second_run))
+        final = slice_one
+        final += slice_two
+        return final
+
+    def create_dataframe_file(path): # creates a file like excel, or LibreOffice Calc etc.. blank for now
+        pass
+
+    def write_dataframes(path):
+        try:
+            if sys.platform == 'linux2':
                 if os.path.isfile(path):
-                    while counter < amount:
-                        final += linecache.getline(path, num)
-                        num += 1
-                        counter += 1
-                    return final
-            except IOError as exception:
-                raise IOError('%s: %s' % (Directory, exception.strerror))
+                    pass # do othing because the file exists
+                elif not os.path.isfile(path):
+                    df1 = pd.DataFrame({'Date': [None], 'Time': [None], 'Listing': [None], 'Website': [None],
+                                        'Email': [None], 'Username': [None], 'Password': [None], 'Description': [None]})
+                    writer = pd.ExcelWriter(path, engine='xlsxwriter')
+                    df1.to_excel(writer, sheet_name='Accounts')
+                    workbook = writer.book
+                    worksheet1 = writer.sheets['Accounts']
+                    writer.save()
+            elif sys.platform == 'win32':
+                if os.path.isfile(path):
+                    pass
+                elif not os.path.isfile(path):
+                    df1 = pd.DataFrame({'Date': [None], 'Time': [None], 'Listing': [None], 'Website': [None],
+                                        'Email': [None], 'Username': [None], 'Password': [None],
+                                        'Description': [None]})
+                    writer = pd.ExcelWriter(path,engine='xlsxwriter')
+                    df1.to_excel(writer, sheet_name='Accounts')
+                    workbook = writer.book
+                    worksheet1 = writer.sheets['Accounts']
+                    writer.save()
+            elif sys.platform == 'darwin':
+                if os.path.isfile(path): # this is not a mac
+                    pass # do nothing because file exists
+                elif not os.path.isfile(path): # this is not a mac
+                    df1 = pd.DataFrame({'Date': [None], 'Time': [None], 'Listing': [None], 'Website': [None],
+                            'Email': [None], 'Username': [None], 'Password': [None], 'Description': [None]})
+                    writer = pd.ExcelWriter(path, engine='xlsxwriter')
+                    df1.to_excel(writer, sheet_name='Accounts')
+                    workbook = writer.book
+                    worksheet1 = writer.sheets['Accounts']
+                    writer.save()
+        except IOError as exception:
+            raise IOError('%s: %s' % (exception.strerror))
+        return None
 
-        def erase_specific_text(self, path, text, skip_num):
-            final = ''
+    def append_dataframes(path):
+        pass
 
-            slice_one = ''
-
-            slice_two = ''
-
-            maximum_lines = self.get_total_lines(path)
-
-            break_line = self.get_line_number(path, text)
-
-            slice_one = self.get_lines_before(path, int(break_line))
-
-            second_run = int(maximum_lines) - int(break_line)
-            second_start = int(break_line) + skip_num
-
-            slice_two = self.get_lines_after(path, int(second_start), int(second_run))
-
-            final = slice_one
-            final += slice_two
-            return final
-
-
+i = AfflictedIO
 
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
     cancel = ObjectProperty(None)
-
-
 
 class SaveDialog(FloatLayout):
     save = ObjectProperty(None)
     text_input = ObjectProperty(None)
     cancel = ObjectProperty(None)
 
+class ApvLoadingScreen(Screen):
 
+    def __init__(self, **kwargs):
+        super(ApvLoadingScreen, self).__init__(**kwargs)
+        Clock.schedule_once(self.switch_screen_callback, 20.0)
+    def switch_screen_callback(self, dt):
+        try:
+            if sys.platform == 'linux2':
+                if os.path.isdir('/home/' + str(os.getlogin()) + './APV/'):
+                    self.parent.current = 'main_screen'
+                elif not os.path.isdir('/home/' + str(os.getlogin()) + './APV/'):
+                    i.create_folder('/home/' + str(os.getlogin()) + './APV/')
+                    i.write_dataframes('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
+                    self.parent.current = 'main_screen'
+            elif sys.platform == 'win32':
+                if os.path.isdir('C:\\APV\\'):
+                    self.parent.current = 'main_screen'
+                elif not os.path.isdir('C:\\APV\\'):
+                    i.create_folder('C:\\APV\\')
+                    i.write_dataframes('C:\\APV\\Private.xlsx')
+                    self.parent.current = 'main_screen'
+            elif sys.platform == 'dawrin': # not mac
+                if os.path.isdir('/home/' + str(os.getlogin()) + './APV/'):
+                    self.parent.current = 'main_screen'
+                elif not os.path.isdir('/home/' + str(os.getlogin()) + './APV/'):
+                    i.create_folder('/home/' + str(os.getlogin()) + './APV/')
+                    i.write_dataframes('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
+                    self.parent.current = 'main_screen'
+        except OSError as exception:
+            raise OSError('%s: %s' % (exception.strerror))
+        return None
+        #self.parent.current = 'main_screen'
+
+    def first_run(self):
+        try:
+            if sys.platform == 'linux2':
+                i.create_folder('/home/' + str(os.getlogin()) + './APV/')
+                i.write_dataframes('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
+                self.switch_screen_callback(5.0)
+            elif sys.platform == 'win32':
+                i.create_folder('C://APV//')
+                i.write_dataframes('C://APV//Private.xlsx')
+                self.switch_screen_callback(5.0)
+            elif sys.platform == 'darwin':
+                i.create_folder('/home/' + str(os.getlogin()) + './APV/')
+                i.write_dataframes('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
+                self.switch_screen_callback(5.0)
+        except OSError as exception:
+            raise OSError('%s: %s' % (exception.strerror))
+        return None
 
 class ApvMainScreen(Screen):
 
@@ -432,30 +514,25 @@ class ApvMainScreen(Screen):
         # Write text encrypted to a file with an added new line
         self.ids.listing_input.text = 'Listing: '
 
-
     def set_website_text(self):
         __website = self.ids.website_input.text
         # Write text encrypted to a file with an added new line
         self.ids.website_input.text = 'Website: '
-
 
     def set_email_text(self):
         __email = self.ids.email_input.text
         # Write text encrypted to a file with an added new line
         self.ids.email_input.text = 'Email Address: '
 
-
     def set_user_text(self):
         __usr = self.ids.user_input.text
         # Write text encrypted to a file with an added new line
         self.ids.user_input.text = 'Username: '
 
-
     def set_password_text(self):
         __password = self.ids.password_input.text
         # Write text encrypted to a file with an added new line
         self.ids.password_input.text = 'Password: '
-
 
     def set_description_text(self):
         __description = self.ids.description_input.text
@@ -464,7 +541,6 @@ class ApvMainScreen(Screen):
 
 class ApvSettingsScreen(Screen):
     pass
-
 
 class ApvScreenManager(ScreenManager):
     pass
@@ -482,12 +558,15 @@ root_widget = Builder.load_string('''
 
 ApvScreenManager:
     transition: FallOutTransition()
+    ApvLoadingScreen:
     ApvMainScreen:
     ApvSettingsScreen:
 
+<ApvLoadingScreen>:
+    name: 'loading_screen'
 
 <ApvMainScreen>:
-    name: 'monitor_screen'
+    name: 'main_screen'
     TextInput:
         id: listing_input
         size_hint: .3, .05
@@ -559,10 +638,7 @@ ApvScreenManager:
                 text: 'Clear'
                 on_release: root.clear_text()
             ActionButton:
-                text: 'Save as'
-                on_press: root.open_save_file_dialog()
-            ActionButton:
-                text: 'Save'
+                text: 'Export File'
                 on_press: root.open_save_file_dialog()
             ActionGroup:
                 text: 'Settings'
