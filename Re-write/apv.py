@@ -525,32 +525,32 @@ class ApvMainScreen(Screen):
     def set_listing_text(self):
         __listing = self.ids.listing_input.text
         self.__gen_dataframe(__listing)
-        self.ids.listing_input.text = 'Listing: '
+        self.ids.listing_input.hint_text = 'Listing: '
 
     def set_website_text(self):
         __website = self.ids.website_input.text
         self.__gen_dataframe(__website)
-        self.ids.website_input.text = 'Website: '
+        self.ids.website_input.hint_text = 'Website: '
 
     def set_email_text(self):
         __email = self.ids.email_input.text
         self.__gen_dataframe(__email)
-        self.ids.email_input.text = 'Email Address: '
+        self.ids.email_input.hint_text = 'Email Address: '
 
     def set_user_text(self):
         __usr = self.ids.username_input.text
         self.__gen_dataframe(__usr)
-        self.ids.username_input.text = 'Username: '
+        self.ids.username_input.hint_text = 'Username: '
 
     def set_password_text(self):
         __password = self.ids.password_input.text
         self.__gen_dataframe(__password)
-        self.ids.password_input.text = 'Password: '
+        self.ids.password_input.hint_text = 'Password: '
 
     def __gen_dataframe(self, text):
         self.__temporary_list.append(text)
-        # self.__test_dataframe()
-        # self.__write_list()
+        self.__test_dataframe() # remove
+        self.__write_list() # finish
 
     def __write_list(self):
         if len(self.__temporary_list) == 5:
@@ -602,37 +602,49 @@ ApvScreenManager:
         id: listing_input
         size_hint: .3, .05
         pos_hint: {'x': 0, 'y': .85 }
-        text: 'Listing: '
+        hint_text: 'Listing: '
         multiline: False
+        border: (1,1,1,1) # play with this setting more
+        on_focus: listing_input.text = ''
         on_text_validate: root.set_listing_text()
+        text_validate_unfocus: True
     TextInput:
         id: website_input
         size_hint: .3, .05
         pos_hint: {'x': 0, 'y': .75 }
-        text: 'Website: '
+        hint_text: 'Website: '
         multiline: False
+        on_focus: website_input.text = ''
         on_text_validate: root.set_website_text()
+        text_validate_unfocus: True
     TextInput:
         id: email_input
         size_hint: .3, .05
         pos_hint: {'x': 0, 'y': .65 }
-        text: 'Email Address: '
+        hint_text: 'Email Address: '
         multiline: False
+        on_focus: email_input.text = ''
         on_text_validate: root.set_email_text()
+        text_validate_unfocus: True
     TextInput:
         id: username_input
         size_hint: .3, .05
         pos_hint: {'x': 0, 'y': .55 }
-        text: 'Username: '
+        hint_text: 'Username: '
         multiline: False
+        on_focus: username_input.text = ''
         on_text_validate: root.set_user_text()
+        text_validate_unfocus: True
     TextInput:
         id: password_input
         size_hint: .3, .05
         pos_hint: {'x': 0, 'y': .45 }
-        text: 'Password: '
+        hint_text: 'Password: '
         multiline: False
+        password: True
+        on_focus: password_input.text = ''
         on_text_validate: root.set_password_text()
+        text_validate_unfocus: True
     TextInput:
         id: viewport_output
         size_hint: .9, .9
