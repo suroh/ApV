@@ -52,7 +52,7 @@ from kivy.uix.filechooser import FileChooser, FileChooserListView
 from kivy.properties import ObjectProperty
 from kivy.uix.popup import Popup
 from kivy.clock import Clock
-
+from kivy.uix.videoplayer import VideoPlayer
 
 
 class Security(object):
@@ -369,8 +369,8 @@ class AfflictedIO(object):
                 if os.path.isfile(path):
                     pass # do othing because the file exists
                 elif not os.path.isfile(path):
-                    df1 = pd.DataFrame({'Date': [None], 'Time': [None], 'Listing': [None], 'Website': [None],
-                                        'Email': [None], 'Username': [None], 'Password': [None], 'Description': [None]})
+                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None],'Email': [None], 'Username': [None],
+                                        'Password': [None], 'Description': [None]})
                     writer = pd.ExcelWriter(path, engine='xlsxwriter')
                     df1.to_excel(writer, sheet_name='Accounts')
                     workbook = writer.book
@@ -380,9 +380,8 @@ class AfflictedIO(object):
                 if os.path.isfile(path):
                     pass
                 elif not os.path.isfile(path):
-                    df1 = pd.DataFrame({'Date': [None], 'Time': [None], 'Listing': [None], 'Website': [None],
-                                        'Email': [None], 'Username': [None], 'Password': [None],
-                                        'Description': [None]})
+                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
+                                        'Password': [None], 'Description': [None]})
                     writer = pd.ExcelWriter(path,engine='xlsxwriter')
                     df1.to_excel(writer, sheet_name='Accounts')
                     workbook = writer.book
@@ -392,8 +391,8 @@ class AfflictedIO(object):
                 if os.path.isfile(path): # this is not a mac
                     pass # do nothing because file exists
                 elif not os.path.isfile(path): # this is not a mac
-                    df1 = pd.DataFrame({'Date': [None], 'Time': [None], 'Listing': [None], 'Website': [None],
-                            'Email': [None], 'Username': [None], 'Password': [None], 'Description': [None]})
+                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
+                                        'Password': [None], 'Description': [None]})
                     writer = pd.ExcelWriter(path, engine='xlsxwriter')
                     df1.to_excel(writer, sheet_name='Accounts')
                     workbook = writer.book
@@ -422,6 +421,7 @@ class ApvLoadingScreen(Screen):
     def __init__(self, **kwargs):
         super(ApvLoadingScreen, self).__init__(**kwargs)
         Clock.schedule_once(self.switch_screen_callback, 20.0)
+
     def switch_screen_callback(self, dt):
         try:
             if sys.platform == 'linux2':
@@ -545,6 +545,10 @@ ApvScreenManager:
 
 <ApvLoadingScreen>:
     name: 'loading_screen'
+    Image:
+        size_hint: .5, .5
+        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+        source: 'Images/hat.png'
 
 <ApvMainScreen>:
     name: 'main_screen'
