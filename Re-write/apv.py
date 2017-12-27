@@ -24,6 +24,7 @@ import linecache
 import fileinput
 import xlwt
 import pandas as pd
+from pandas import ExcelWriter
 import kivy
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
@@ -53,389 +54,9 @@ from kivy.properties import ObjectProperty
 from kivy.uix.popup import Popup
 from kivy.clock import Clock
 from kivy.uix.videoplayer import VideoPlayer
+import xlrd
+from openpyxl import load_workbook
 
-
-class Security(object):
-    rsa_key = None
-
-    def __init__(self):
-        gen_len = random.randint(1, 100)
-        k_len = list()
-        complete = ''
-        self._block = 16
-        if gen_len < 50:
-            for i in range(16):
-                k_len.append(random.randint(32, 126))
-
-            for i in k_len:
-                if i != 32:
-                    complete += chr(i)
-                elif i == 32:
-                    complete += chr(126)
-
-            self._key = complete
-
-        elif gen_len >= 50:
-            for i in range(32):
-                k_len.append(random.randint(32, 126))
-
-            for i in k_len:
-                if i != 32:
-                    complete += chr(i)
-                elif i == 32:
-                    complete += chr(126)
-
-            self._key = complete
-
-    def UserKey(self, temp_key):
-        key_length = len(temp_key)
-        if key_length < 16:
-            print('The key must be either 16 or 32 bytes in length')
-
-        elif key_length == 16:
-            self._key = temp_key
-
-        elif key_length == 32:
-            self._key = temp_key
-        return self._key
-
-    def Encrypt_Message(self, text):
-        text = self.__Pad(text)
-        iv = Random.new().read(AES.block_size)
-        cipher = AES.new(self._key, AES.MODE_CBC, iv)
-        return base64.urlsafe_b64encode(iv + cipher.encrypt(text))
-
-    def Decrypt_Message(self, text):
-        cleaned = base64.urlsafe_b64decode(text)
-        iv = cleaned[:AES.block_size]
-        cipher = AES.new(self._key, AES.MODE_CBC, iv)
-        return self.__Unpad(cipher.decrypt(cleaned[AES.block_size:])).decode('utf-8')
-
-    def Encrypt_File(self, path):
-        with open(path, 'r') as inFile:
-            plainText = inFile.read()
-        plainText = self.__Pad(plainText)
-        iv = Random.new().read(AES.block_size)
-        cipher = AES.new(self._key, AES.MODE_CBC, iv)
-        return base64.urlsafe_b64encode(iv + cipher.encrypt(plainText))
-
-    def Write_Encrypted(self, path, hidden):
-        with open(path, 'wb') as outFile:
-            outFile.write(hidden)
-        return None
-
-    def Decrypt_File(self, path):
-        with open(path, 'rb') as seeFile:
-            encryptedData = seeFile.read()
-        cleaned = base64.urlsafe_b64decode(encryptedData)
-        iv = cleaned[:AES.block_size]
-        cipher = AES.new(self._key, AES.MODE_CBC, iv)
-        return self.__Unpad(cipher.decrypt(cleaned[AES.block_size:])).decode('utf-8')
-
-    def Write_Decrypted(self, path, text):
-        with open(path, 'w') as mkFile:
-            mkFile.write(str(text))
-        return None
-
-    def __Pad(self, text):
-        return text + (self._block - len(text) % self._block) * chr(self._block - len(text) % self._block)
-
-    def __Unpad(self, text):
-        return text[:-ord(text[len(text) - 1:])]
-
-    def RSA_Key_Gen(self):
-        Afflicted.Security.rsa_key = RSA.generate(1024, Random.new().read)
-        return self._rsa_key
-
-    def Encrypt_Key(self, aes_key):
-        key = self.RSA_Key_Gen()
-        PubKey = key.publickey()
-        return PubKey.encrypt(bytes(aes_key.encode()), 32)
-
-    def Decrypt_Key(self, aes_key):
-        return self.rsa_key.decrypt(aes_key)
-
-    def write_key(self, path, aes_key):
-        with open(path, 'w') as f:
-            f.write(str(aes_key))
-        return None
-
-    def read_key(self, path):
-        with open(path, 'rb') as inFile:
-            hidden = inFile.read()
-        return self.Decrypt_Key(hidden)
-    #re-write Security using pynacl; PyCrypto has been dead for years now.
-
-class AfflictedIO(object):
-
-    def write(path, text):
-        try:
-            if os.path.isfile(path):
-                return None
-            else:
-                with open(path, 'w') as outFile:
-                    outFile.write(text)
-        except IOError as exception:
-            raise IOError("%s: %s" % (path, exception.strerror))
-        return None
-
-    def append(path, text):
-        try:
-            if os.path.isfile(path):
-                with open(path, 'a') as outFile:
-                    outFile.write(text)
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-        return None
-
-    def read(path):
-        try:
-            if os.path.isfile(path):
-                with open(path, 'r') as inFile:
-                    temp = inFile.read()
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-        return temp
-
-    def write_b(path, text):
-        try:
-            if os.path.isfile(path):
-                with open(path, 'wb') as outFile:
-                    outFile.write(text)
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-        return None
-
-    def append_b(path, text):
-        try:
-            if os.path.isfile(path):
-                with open(path, 'ab') as outFile:
-                    outFile.write(text)
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-        return None
-
-    def read_b(path):
-        try:
-            if os.path.isfile(path):
-                with open(path, 'rb') as inFile:
-                    temp = inFile.read()
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-        return temp
-
-    def get_line( path, number):
-        try:
-            if os.path.isfile(path):
-                temp = linecache.getline(path, number)
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-        return temp
-
-    def create_file(Directory, file_name):
-        temp = Directory + file_name
-        try:
-            if os.path.isdir(Directory):
-                with open(temp, 'w') as outFile:
-                    pass
-        except IOError as exception:
-            raise IOError('%s: %s' % (Directory, exception.strerror))
-        return temp
-
-    def create_folder(path):
-        try:
-            if os.path.isdir(path):
-                pass
-            else:
-                os.makedirs(path)
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-        return None
-
-    def delete_file(path):
-        try:
-            if os.path.isfile(path):
-                os.remove(path)
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-        return None
-
-    def delete_folder(path):
-        try:
-            if os.path.isdir(path):
-                os.rmdir(path)
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-        return None
-
-    def find_string(path, text):
-        try:
-            if os.path.isfile(path):
-                with open(path, 'r') as inFile:
-                    for i, line in enumerate(inFile):
-                        if text in line:
-                            return text
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-
-    def get_line_number(path, text):
-        try:
-            if os.path.isfile(path):
-                with open(path, 'r') as inFile:
-                    for i, line in enumerate(inFile):
-                        if text in line:
-                            return str(i)
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-
-    def get_total_lines(path):
-        counter = 0
-        try:
-            if os.path.isfile(path):
-                with open(path, 'r') as inFile:
-                    for i in enumerate(inFile):
-                        counter = counter + 1
-            return str(counter)
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-
-    def get_lines_before(path, line_number):
-        try:
-            final = ''
-            counter = 0
-            if os.path.isfile(path):
-                while counter < line_number:
-                    final += linecache.getline(path, counter)
-                    counter += 1
-                return final
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-
-    def get_lines_from(path, text, amount):
-        main = 0
-        final = ''
-        counter = 0
-        try:
-            if os.path.isfile(path):
-                with open(path, 'r') as inFile:
-                    for i, line in enumerate(inFile):
-                        if text in line:
-                            main = i
-                            break
-                final = linecache.getline(path, main)
-                main += 1
-                while counter < amount:
-                    final += linecache.getline(path, main)
-                    main += 1
-                    counter += 1
-                return final
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-
-    def get_lines_after(path, line_number, amount):
-        final = ''
-        counter = 0
-        num = line_number + 1
-        try:
-            if os.path.isfile(path):
-                while counter < amount:
-                    final += linecache.getline(path, num)
-                    num += 1
-                    counter += 1
-                return final
-        except IOError as exception:
-            raise IOError('%s: %s' % (path, exception.strerror))
-
-    def erase_specific_text(path, text, skip_num):
-        final = ''
-        slice_one = ''
-        slice_two = ''
-        maximum_lines = self.get_total_lines(path)
-        break_line = self.get_line_number(path, text)
-        slice_one = self.get_lines_before(path, int(break_line))
-        second_run = int(maximum_lines) - int(break_line)
-        second_start = int(break_line) + skip_num
-        slice_two = self.get_lines_after(path, int(second_start), int(second_run))
-        final = slice_one
-        final += slice_two
-        return final
-
-    def create_dataframe_file(path): # creates a file like excel, or LibreOffice Calc etc.. blank for now
-        pass
-
-    def write_dataframes(path):
-        try:
-            if sys.platform == 'linux2':
-                if os.path.isfile(path):
-                    pass # do othing because the file exists
-                elif not os.path.isfile(path):
-                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None],'Email': [None], 'Username': [None],
-                                        'Password': [None]})
-                    writer = pd.ExcelWriter(path, engine='xlsxwriter')
-                    df1.to_excel(writer, sheet_name='Accounts')
-                    workbook = writer.book
-                    worksheet1 = writer.sheets['Accounts']
-                    writer.save()
-            elif sys.platform == 'win32':
-                if os.path.isfile(path):
-                    pass
-                elif not os.path.isfile(path):
-                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
-                                        'Password': [None]})
-                    writer = pd.ExcelWriter(path,engine='xlsxwriter')
-                    df1.to_excel(writer, sheet_name='Accounts')
-                    workbook = writer.book
-                    worksheet1 = writer.sheets['Accounts']
-                    writer.save()
-            elif sys.platform == 'darwin':
-                if os.path.isfile(path): # this is not a mac
-                    pass # do nothing because file exists
-                elif not os.path.isfile(path): # this is not a mac
-                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
-                                        'Password': [None]})
-                    writer = pd.ExcelWriter(path, engine='xlsxwriter')
-                    df1.to_excel(writer, sheet_name='Accounts')
-                    workbook = writer.book
-                    worksheet1 = writer.sheets['Accounts']
-                    writer.save()
-        except IOError as exception:
-            raise IOError('%s: %s' % (exception.strerror))
-        return None
-
-    def append_dataframes(path, listing_text, website_text, email_text, user_text, password_text, description_text):
-        try:
-            if sys.platform == 'linux2':
-                if os.path.isfile(path):
-                    pass  # do othing because the file exists
-                elif not os.path.isfile(path):
-                    '''
-                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
-                                        'Password': [None]})
-                    writer = pd.ExcelWriter(path, engine='xlsxwriter')
-                    df1.to_excel(writer, sheet_name='Accounts')
-                    workbook = writer.book
-                    worksheet1 = writer.sheets['Accounts']
-                    writer.save()
-                    '''
-                    #df = pd.DataFrame(, columns = ('BCDEF'))
-                    pass
-            elif sys.platform == 'win32':
-                if os.path.isfile(path):
-                    pass
-                elif not os.path.isfile(path):
-                    #write shit
-                    pass
-            elif sys.platform == 'darwin':
-                if os.path.isfile(path):  # this is not a mac
-                    pass  # do nothing because file exists
-                elif not os.path.isfile(path):  # this is not a mac
-                   #write shit
-                   pass
-        except IOError as exception:
-            raise IOError('%s: %s' % (exception.strerror))
-        return None
-
-i = AfflictedIO
 
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
@@ -458,33 +79,127 @@ class ApvLoadingScreen(Screen):
                 if os.path.isdir('/home/' + str(os.getlogin()) + './APV/'):
                     self.parent.current = 'main_screen'
                 elif not os.path.isdir('/home/' + str(os.getlogin()) + './APV/'):
-                    i.create_folder('/home/' + str(os.getlogin()) + './APV/')
-                    i.write_dataframes('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
+                    self.create_folder('/home/' + str(os.getlogin()) + './APV/')
+                    self.create_excel_document('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
                     self.parent.current = 'main_screen'
             elif sys.platform == 'win32':
                 if os.path.isdir('C:\\APV\\'):
                     self.parent.current = 'main_screen'
                 elif not os.path.isdir('C:\\APV\\'):
-                    i.create_folder('C:\\APV\\')
-                    i.write_dataframes('C:\\APV\\Private.xlsx')
+                    self.create_folder('C:\\APV\\')
+                    self.create_excel_document('C:\\APV\\Private.xlsx')
                     self.parent.current = 'main_screen'
             elif sys.platform == 'dawrin': # not mac
                 if os.path.isdir('/home/' + str(os.getlogin()) + './APV/'):
                     self.parent.current = 'main_screen'
                 elif not os.path.isdir('/home/' + str(os.getlogin()) + './APV/'):
-                    i.create_folder('/home/' + str(os.getlogin()) + './APV/')
-                    i.write_dataframes('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
+                    self.create_folder('/home/' + str(os.getlogin()) + './APV/')
+                    self.create_excel_document('/home/' + str(os.getlogin()) + './APV/Private.xlsx')
                     self.parent.current = 'main_screen'
         except OSError as exception:
             raise OSError('%s: %s' % (exception.strerror))
         return None
         #self.parent.current = 'main_screen'
 
+    def create_excel_document(self, path):
+        try:
+            if sys.platform == 'linux2':
+                if os.path.isdir(path):
+                    if os.path.isfile(path + 'Private.xlsx'): # .ods for linux so this should be changed
+                        pass
+                    elif not os.path.isfile(path):
+                        df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
+                                            'Password': [None]})
+                        writer = pd.ExcelWriter(path, engine='xlsxwriter')
+                        df1.to_excel(writer, sheet_name='Accounts')
+                        workbook = writer.book
+                        worksheet1 = writer.sheets['Accounts']
+                        worksheet1.set_column(1, 5, 35) #
+                        writer.save()
+                elif not os.path.isdir(path):
+                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
+                                        'Password': [None]})
+                    writer = pd.ExcelWriter(path, engine='xlsxwriter')
+                    df1.to_excel(writer, sheet_name='Accounts')
+                    workbook = writer.book
+                    worksheet1 = writer.sheets['Accounts']
+                    worksheet1.set_column(1, 5, 35) #
+                    writer.save()
+            elif sys.platform == 'win32':
+                if os.path.isdir(path):
+                    if os.path.isfile(path + 'Private.xlsx'):
+                        pass
+                    elif not os.path.isfile(path):
+                        df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
+                                            'Password': [None]})
+                        writer = pd.ExcelWriter(path, engine='xlsxwriter')
+                        df1.to_excel(writer, sheet_name='Accounts')
+                        workbook = writer.book
+                        worksheet1 = writer.sheets['Accounts']
+                        worksheet1.set_column(1, 5, 35)
+                        writer.save()
+                elif not os.path.isdir(path):
+                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
+                                        'Password': [None]})
+                    writer = pd.ExcelWriter(path, engine='xlsxwriter')
+                    df1.to_excel(writer, sheet_name='Accounts')
+                    workbook = writer.book
+                    worksheet1 = writer.sheets['Accounts']
+                    worksheet1.set_column(1, 5, 35)
+                    writer.save()
+            elif sys.platform == 'darwin':
+                if os.path.isdir(path):
+                    if os.path.isfile(path + 'Private.xlsx'): # .ods for mac so this should be changed
+                        pass
+                    elif not os.path.isfile(path):
+                        df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
+                                            'Password': [None]})
+                        writer = pd.ExcelWriter(path, engine='xlsxwriter')
+                        df1.to_excel(writer, sheet_name='Accounts')
+                        workbook = writer.book
+                        worksheet1 = writer.sheets['Accounts']
+                        worksheet1.set_column(1, 5, 35)
+                        writer.save()
+                elif not os.path.isdir(path):
+                    df1 = pd.DataFrame({'Listing': [None], 'Website': [None], 'Email': [None], 'Username': [None],
+                                        'Password': [None]})
+                    writer = pd.ExcelWriter(path, engine='xlsxwriter')
+                    df1.to_excel(writer, sheet_name='Accounts')
+                    workbook = writer.book
+                    worksheet1 = writer.sheets['Accounts']
+                    worksheet1.set_column(1, 5, 35)
+                    writer.save()
+        except IOError as exception:
+            raise IOError('%s: %s' % (exception.strerror))
+        return None
+
+    def create_ods_document(self, path):
+        pass # finish this
+
+    def create_folder(self, path):
+        try:
+            if os.path.isdir(path):
+                pass
+            else:
+                os.makedirs(path)
+        except IOError as exception:
+            raise IOError('%s: %s' % (path, exception.strerror))
+        return None
+
 class ApvMainScreen(Screen):
 
     def __init__(self, **kwargs):
         super(ApvMainScreen, self).__init__(**kwargs)
-        self.__temporary_list = list()
+
+        self.__listing_list = list()
+        self.__Website_list = list()
+        self.__Email_list = list()
+        self.__User_list = list()
+        self.__password_list = list()
+
+        self.__win = 'C:\\APV\\Private.xlsx'
+        self.__linux = '/home/' + str(os.getlogin()) + './APV/Private.xlsx'
+        self.__mac = '/home/' + str(os.getlogin()) + './APV/Private.xlsx' # wrong
 
     def open_load_file_dialog(self):
         content = LoadDialog(load = self.load, cancel = self.dismiss_popup)
@@ -523,48 +238,273 @@ class ApvMainScreen(Screen):
         self.ids.viewport_output.text = ''
 
     def set_listing_text(self):
-        __listing = self.ids.listing_input.text
-        self.__gen_dataframe(__listing)
-        self.ids.listing_input.hint_text = 'Listing: '
+        if sys.platform == 'linux2':
+            __listing = self.ids.listing_input.text
+            self.__listing_list.append(__listing)
+            self.ids.listing_input.hint_text = 'Listing: '
+        elif sys.platform == 'win32':
+            __listing = self.ids.listing_input.text
+            self.__listing_list.append(__listing)
+            self.ids.listing_input.hint_text = 'Listing: '
+        elif sys.platform == 'darwin':
+            __listing = self.ids.listing_input.text
+            self.__listing_list.append(__listing)
+            self.ids.listing_input.hint_text = 'Listing: '
 
     def set_website_text(self):
-        __website = self.ids.website_input.text
-        self.__gen_dataframe(__website)
-        self.ids.website_input.hint_text = 'Website: '
+        if sys.platform == 'linux2':
+            __website = self.ids.website_input.text
+            self.__Website_list.append(__website)
+            self.ids.website_input.hint_text = 'Website: '
+        elif sys.platform == 'win32':
+            __website = self.ids.website_input.text
+            self.__Website_list.append(__website)
+            self.ids.website_input.hint_text = 'Website: '
+        elif sys.platform == 'darwin':
+            __website = self.ids.website_input.text
+            self.__Website_list.append(__website)
+            self.ids.website_input.hint_text = 'Website: '
 
     def set_email_text(self):
-        __email = self.ids.email_input.text
-        self.__gen_dataframe(__email)
-        self.ids.email_input.hint_text = 'Email Address: '
+        if sys.platform == 'linux2':
+            __email = self.ids.email_input.text
+            self.__Email_list.append(__email)
+            self.ids.email_input.hint_text = 'Email Address: '
+        elif sys.platform == 'win32':
+            __email = self.ids.email_input.text
+            self.__Email_list.append(__email)
+            self.ids.email_input.hint_text = 'Email Address: '
+        elif sys.platform == 'darwin':
+            __email = self.ids.email_input.text
+            self.__Email_list.append(__email)
+            self.ids.email_input.hint_text = 'Email Address: '
 
     def set_user_text(self):
-        __usr = self.ids.username_input.text
-        self.__gen_dataframe(__usr)
-        self.ids.username_input.hint_text = 'Username: '
+        if sys.platform == 'linux2':
+            __usr = self.ids.username_input.text
+            self.__User_list.append(__usr)
+            self.ids.username_input.hint_text = 'Username: '
+        elif sys.platform == 'win32':
+            __usr = self.ids.username_input.text
+            self.__User_list.append(__usr)
+            self.ids.username_input.hint_text = 'Username: '
+        elif sys.platform == 'darwin':
+            __usr = self.ids.username_input.text
+            self.__User_list.append(__usr)
+            self.ids.username_input.hint_text = 'Username: '
 
     def set_password_text(self):
-        __password = self.ids.password_input.text
-        self.__gen_dataframe(__password)
-        self.ids.password_input.hint_text = 'Password: '
+        if sys.platform == 'linux2':
+            __password = self.ids.password_input.text
+            self.__password_list.append(__password)
+            self.append_and_write_dataframes(self.__linux)
+            self.ids.password_input.hint_text = 'Password: '
+        elif sys.platform == 'win32':
+            __password = self.ids.password_input.text
+            self.__password_list.append(__password)
+            self.append_and_write_dataframes(self.__win)
+            self.ids.password_input.hint_text = 'Password: '
+        elif sys.platform == 'darwin':
+            __password = self.ids.password_input.text
+            self.__password_list.append(__password)
+            self.append_and_write_dataframes(self.__mac)
+            self.ids.password_input.hint_text = 'Password: '
 
-    def __gen_dataframe(self, text):
-        self.__temporary_list.append(text)
-        self.__test_dataframe() # remove
-        self.__write_list() # finish
+    def append_listing(self, path, py_list):
+        if sys.platform == 'linux2':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Listing'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__listing_list.clear() #
+        elif sys.platform == 'win32':
+            df = pd.read_excel(path, sheet_name = 'Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Listing'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__listing_list.clear() #
+        elif sys.platform == 'darwin':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Listing'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__listing_list.clear() #
 
-    def __write_list(self):
-        if len(self.__temporary_list) == 5:
-            print('clearing now')
-            self.__clear_list()
-            for i in self.__temporary_list:
-                print(i)
+    def append_website(self, path, py_list):
+        if sys.platform == 'linux2':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Website'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__Website_list.clear()
+        elif sys.platform == 'win32':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Website'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__Website_list.clear()
+        elif sys.platform == 'darwin':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Website'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__Website_list.clear()
 
-    def __test_dataframe(self):
-        for i in self.__temporary_list:
-            print(i)
+    def append_email(self, path, py_list):
+        if sys.platform == 'linux2':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Email'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__Email_list.clear()
+        elif sys.platform == 'win32':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Email'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__Email_list.clear()
+        elif sys.platform == 'darwin':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Email'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__Email_list.clear()
 
-    def __clear_list(self):
-        self.__temporary_list.clear()
+    def append_user(self, path, py_list):
+        if sys.platform == 'linux2':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Username'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__User_list.clear()
+        elif sys.platform == 'win32':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Username'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__User_list.clear()
+        elif sys.platform == 'darwin':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Username'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__User_list.clear()
+
+    def append_password(self, path, py_list):
+        if sys.platform == 'linux2':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Password'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__password_list.clear()
+        elif sys.platform == 'win32':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Password'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__password_list.clear()
+        elif sys.platform == 'darwin':
+            df = pd.read_excel(path, sheet_name='Accounts')
+            df1 = pd.DataFrame(py_list, columns=['Password'])
+            df3 = df.append(df1)
+            writer = pd.ExcelWriter(path, engine='xlsxwriter')
+            df3.to_excel(writer, sheet_name='Accounts')
+            workbook = writer.book
+            worksheet1 = writer.sheets['Accounts']
+            worksheet1.set_column(1, 5, 30)
+            writer.save()
+            self.__password_list.clear()
+
+    def test_read(self): # marked for removal
+        df = pd.read_excel(self.__win, sheet_name='Accounts')
+        self.ids.viewport_output.text = str(df.head())
+
+    def append_and_write_dataframes(self, path):
+        df = pd.read_excel(path, sheet_name='Accounts')
+        df1 = pd.DataFrame({'Listing': [self.__listing_list], 'Website': [self.__Website_list],
+                            'Email': [self.__Email_list], 'Username': [self.__User_list], 'Password': [self.__password_list]})
+        df3 = df.append(df1)
+        writer = pd.ExcelWriter(path, engine='xlsxwriter')
+        df3.to_excel(writer, sheet_name='Accounts')
+        workbook = writer.book
+        worksheet1 = writer.sheets['Accounts']
+        worksheet1.set_column(1, 5, 35)
+        writer.save()
+        self.__listing_list.clear()  #
+        self.__Website_list.clear()
+        self.__Email_list.clear()
+        self.__User_list.clear()
+        self.__password_list.clear()
 
 class ApvSettingsScreen(Screen):
     pass
@@ -604,7 +544,6 @@ ApvScreenManager:
         pos_hint: {'x': 0, 'y': .85 }
         hint_text: 'Listing: '
         multiline: False
-        border: (1,1,1,1) # play with this setting more
         on_focus: listing_input.text = ''
         on_text_validate: root.set_listing_text()
         text_validate_unfocus: True
@@ -661,6 +600,9 @@ ApvScreenManager:
                 title: 'Menu'
                 with_previous: False
             ActionOverflow:
+            ActionButton: ## remove
+                text: 'Test read' ## remove
+                on_press: root.test_read() ## remove
             ActionButton:
                 text: 'Open file'
                 on_press: root.open_load_file_dialog()
