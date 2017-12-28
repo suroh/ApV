@@ -56,7 +56,7 @@ from kivy.clock import Clock
 from kivy.uix.videoplayer import VideoPlayer
 import xlrd
 from openpyxl import load_workbook
-
+from kivy.uix.rst import RstDocument
 
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
@@ -190,13 +190,7 @@ class ApvMainScreen(Screen):
 
     def __init__(self, **kwargs):
         super(ApvMainScreen, self).__init__(**kwargs)
-
-        self.__listing_list = list()
-        self.__Website_list = list()
-        self.__Email_list = list()
-        self.__User_list = list()
-        self.__password_list = list()
-
+        self.__master_dict = {'Listing': None, 'Website': None, 'Email': None, 'Username': None, 'Password': None}
         self.__win = 'C:\\APV\\Private.xlsx'
         self.__linux = '/home/' + str(os.getlogin()) + './APV/Private.xlsx'
         self.__mac = '/home/' + str(os.getlogin()) + './APV/Private.xlsx' # wrong
@@ -240,73 +234,73 @@ class ApvMainScreen(Screen):
     def set_listing_text(self):
         if sys.platform == 'linux2':
             __listing = self.ids.listing_input.text
-            self.__listing_list.append(__listing)
+            self.__master_dict['Listing'] = __listing
             self.ids.listing_input.hint_text = 'Listing: '
         elif sys.platform == 'win32':
             __listing = self.ids.listing_input.text
-            self.__listing_list.append(__listing)
+            self.__master_dict['Listing'] = __listing
             self.ids.listing_input.hint_text = 'Listing: '
         elif sys.platform == 'darwin':
             __listing = self.ids.listing_input.text
-            self.__listing_list.append(__listing)
+            self.__master_dict['Listing'] = __listing
             self.ids.listing_input.hint_text = 'Listing: '
 
     def set_website_text(self):
         if sys.platform == 'linux2':
             __website = self.ids.website_input.text
-            self.__Website_list.append(__website)
+            self.__master_dict['Website'] = __website
             self.ids.website_input.hint_text = 'Website: '
         elif sys.platform == 'win32':
             __website = self.ids.website_input.text
-            self.__Website_list.append(__website)
+            self.__master_dict['Website'] = __website
             self.ids.website_input.hint_text = 'Website: '
         elif sys.platform == 'darwin':
             __website = self.ids.website_input.text
-            self.__Website_list.append(__website)
+            self.__master_dict['Website'] = __website
             self.ids.website_input.hint_text = 'Website: '
 
     def set_email_text(self):
         if sys.platform == 'linux2':
             __email = self.ids.email_input.text
-            self.__Email_list.append(__email)
+            self.__master_dict['Email'] = __email
             self.ids.email_input.hint_text = 'Email Address: '
         elif sys.platform == 'win32':
             __email = self.ids.email_input.text
-            self.__Email_list.append(__email)
+            self.__master_dict['Email'] = __email
             self.ids.email_input.hint_text = 'Email Address: '
         elif sys.platform == 'darwin':
             __email = self.ids.email_input.text
-            self.__Email_list.append(__email)
+            self.__master_dict['Email'] = __email
             self.ids.email_input.hint_text = 'Email Address: '
 
     def set_user_text(self):
         if sys.platform == 'linux2':
             __usr = self.ids.username_input.text
-            self.__User_list.append(__usr)
+            self.__master_dict['Username'] = __usr
             self.ids.username_input.hint_text = 'Username: '
         elif sys.platform == 'win32':
             __usr = self.ids.username_input.text
-            self.__User_list.append(__usr)
+            self.__master_dict['Username'] = __usr
             self.ids.username_input.hint_text = 'Username: '
         elif sys.platform == 'darwin':
             __usr = self.ids.username_input.text
-            self.__User_list.append(__usr)
+            self.__master_dict['Username'] = __usr
             self.ids.username_input.hint_text = 'Username: '
 
     def set_password_text(self):
         if sys.platform == 'linux2':
             __password = self.ids.password_input.text
-            self.__password_list.append(__password)
+            self.__master_dict['Password'] = __password
             self.append_and_write_dataframes(self.__linux)
             self.ids.password_input.hint_text = 'Password: '
         elif sys.platform == 'win32':
             __password = self.ids.password_input.text
-            self.__password_list.append(__password)
+            self.__master_dict['Password'] = __password
             self.append_and_write_dataframes(self.__win)
             self.ids.password_input.hint_text = 'Password: '
         elif sys.platform == 'darwin':
             __password = self.ids.password_input.text
-            self.__password_list.append(__password)
+            self.__master_dict['Password'] = __password
             self.append_and_write_dataframes(self.__mac)
             self.ids.password_input.hint_text = 'Password: '
 
@@ -316,12 +310,15 @@ class ApvMainScreen(Screen):
         s = temp.replace('NaN', '')
         s = s.replace('[', '')
         s = s.replace(']', '')
-        self.ids.viewport_output.text = str(s)
+        doc = RstDocument(text = s)
+        self.ids.viewport_output.text = s
+        print(doc)
 
     def append_and_write_dataframes(self, path):
         df = pd.read_excel(path, sheet_name='Accounts')
-        df1 = pd.DataFrame({'Listing': [self.__listing_list], 'Website': [self.__Website_list],
-                            'Email': [self.__Email_list], 'Username': [self.__User_list], 'Password': [self.__password_list]})
+        df1 = pd.DataFrame({'Listing': [self.__master_dict['Listing']], 'Website': [self.__master_dict['Website']],
+                            'Email': [self.__master_dict['Email']], 'Username': [self.__master_dict['Username']],
+                            'Password': [self.__master_dict['Password']]})
         df3 = df.append(df1)
         writer = pd.ExcelWriter(path, engine='xlsxwriter')
         df3.to_excel(writer, sheet_name='Accounts')
@@ -329,11 +326,7 @@ class ApvMainScreen(Screen):
         worksheet1 = writer.sheets['Accounts']
         worksheet1.set_column(1, 5, 35)
         writer.save()
-        self.__listing_list.clear()  #
-        self.__Website_list.clear()
-        self.__Email_list.clear()
-        self.__User_list.clear()
-        self.__password_list.clear()
+        self.__master_dict.clear()
 
 class ApvSettingsScreen(Screen):
     pass
